@@ -5,6 +5,20 @@
 */
 
 var Mustache = function() {
+  
+  // Checks whether a value is thruthy or false or 0
+  function is_kinda_truthy(bool) {
+    return bool === false || bool === 0 || bool;
+  }
+  
+  function getObject(name, create, context) {
+    var parts = name.split("."), obj = context || window;
+    for(var i = 0, p; obj && (p = parts[i]); i++){
+      obj = (p in obj ? obj[p] : (create ? obj[p] = {} : undefined));
+    }
+    return obj; // mixed    
+  }
+  
   var Renderer = function() {};
 
   Renderer.prototype = {
@@ -205,21 +219,22 @@ var Mustache = function() {
 
     /*
       find `name` in current `context`. That is find me a value
-      from the view object
+      from the view object. dot notation support included.
     */
     find: function(name, context) {
       name = this.trim(name);
 
-      // Checks whether a value is thruthy or false or 0
-      function is_kinda_truthy(bool) {
-        return bool === false || bool === 0 || bool;
-      }
-
-      var value;
-      if(is_kinda_truthy(context[name])) {
-        value = context[name];
-      } else if(is_kinda_truthy(this.context[name])) {
-        value = this.context[name];
+      var value, 
+          candidate = name == "." ? context[name] : getObject(name, null, context)
+      ;
+      
+      if(is_kinda_truthy(candidate)) {
+        value = candidate;
+      } else {
+        candidate = getObject(name, null, this.context); // this assumes `this` is view
+        if(is_kinda_truthy(candidate)) {
+          value = candidate;
+        }
       }
 
       if(typeof value === "function") {
